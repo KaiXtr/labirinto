@@ -6,7 +6,7 @@ Projeto de algoritmo de labirinto programado para a matéria de Teoria dos autô
 
 - Ewerton Matheus Bezerra Ramos
 - Monteiro
-- Pedro
+- Pedro Henrique Pinheiro Passos
 - Yury Fontenele
 
 ## Instalação
