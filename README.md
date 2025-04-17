@@ -5,8 +5,8 @@ Projeto de algoritmo de labirinto programado para a matéria de Teoria dos autô
 ## Participantes
 
 - Ewerton Matheus Bezerra Ramos
-- Monteiro
-- Pedro
+- João Víctor Monteiro da Silva - 38720558
+- Pedro Henrique Pinheiro Passos
 - Yury Fontenele
 
 ## Instalação
