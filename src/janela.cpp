@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "jogador.cpp"
+#include "labirinto.cpp"
 
 class Janela {
 private:
@@ -76,22 +77,7 @@ public:
 	}
 
     void gerarLabirinto(unsigned int largura, unsigned int altura){
-        labirintoLargura = largura;
-        labirintoAltura = altura;
-
-        for (int i=0; i < labirintoAltura; i++) {
-            std::vector<int> linha = {};
-
-            for (int j=0; j < labirintoLargura; j++) {
-                linha.push_back(1);
-            }
-            labirintoMatrix.push_back(linha);
-        }
-
-        unsigned int x = SDL_round(labirintoLargura/2);
-        unsigned int y = SDL_round(labirintoAltura/2);
-        
-        labirintoMatrix[x][y] = 1;
+        gerarLabirintoFloodFill(&labirintoMatrix, &largura, &altura);
     }
 
     void desenharLabirinto(){

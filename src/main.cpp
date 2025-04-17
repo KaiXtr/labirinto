@@ -9,7 +9,7 @@ int main(int argc, char* args[]) {
     Janela janela = Janela("Labirinto", 10, 10, janelaLargura, janelaAltura);
     Jogador jogador = Jogador();
 
-    janela.gerarLabirinto(20,20);
+    janela.gerarLabirinto(10,10);
 
     // FPS
 	static Uint32 tintervalo=30, prox_f, atual_f, fps_atual, fps_contar=60;
