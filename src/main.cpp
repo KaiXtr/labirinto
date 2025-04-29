@@ -23,7 +23,7 @@ int main(int argc, char* args[]) {
         }
         janela.limpar();
         janela.desenharLabirinto();
-        jogador.desenhar(janela.getRenderer());
+        //jogador.desenhar(janela.getRenderer());
         janela.atualizar();
 
         // FPS
