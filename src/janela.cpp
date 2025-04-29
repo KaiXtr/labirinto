@@ -86,7 +86,7 @@ public:
             vector<vector<int>> linha = {};
 
             for (int j=0; j < largura; j++) {
-                vector<int> dirs = {0,0,0,0};
+                vector<int> dirs = {0,0,0,0,0};
                 linha.push_back(dirs);
             }
             m.push_back(linha);
@@ -104,95 +104,193 @@ public:
 
         int steps = 1;
 
-        limpar();
-        desenharLabirinto();
-        atualizar();
-        usleep(100 * 10000);
+        // MOSTRANDO DIREÇÃO ATUAL EM QUE O ESCAVADOR NAVEGOU
+        char directions[] = {'R','D','L','U','?'};
+        //cout << "= [" << x << ", " << y << "]: " << directions[dir] << endl;
 
-        curPosX = x;
-        curPosY = y;
-        
-        char directions[] = {'R','D','L','U'};
-        cout << "= [" << x << ", " << y << "]: " << directions[dir] << endl;
+        // O BLOCO ATUAL FOI VISITADO
         vector<vector<vector<int>>> m = *matrix;
+        m[x][y][4] = 1;
 
+        // REMOVENDO PAREDE ENTRE O BLOCO ANTERIOR E O BLOCO ATUAL
         if (dir == 0) {
-            m[x][y][2] = 1;
+            m[x][y][2] = 1; // VEIO DA DIREITA, APAGA A ESQUERDA
+            m[x - steps][y][0] = 1;
         }
         if (dir == 1) {
-            m[x][y][3] = 1;
+            m[x][y][3] = 1; // VEIO DE BAIXO, APAGA ACIMA
+            m[x][y - steps][1] = 1;
         }
         if (dir == 2) {
-            m[x][y][0] = 1;
+            m[x][y][0] = 1; // VEIO DA ESQUERDA, APAGA A DIREITA
+            m[x + steps][y][2] = 1;
         }
         if (dir == 3) {
-            m[x][y][1] = 1;
+            m[x][y][1] = 1; // VEIO DE CIMA, APAGA ABAIXO
+            m[x][y + steps][3] = 1;
         }
         
+        // ATUALIZANDO DADOS DO PONTEIRO
         *matrix = m;
 
-        unsigned int vizinhos[4] = {0,0,0,0};
+        // EXIBINDO AS MUDANÇAS EM TEMPO REAL COM UM TEMPO DE DELAY
+        atualizarAlgoritmo(x, y);
 
-        if (x + steps < largura) {
-            if (m[x + steps][y][2] == 0) {
-                vizinhos[0] = 1;
-            }
-        }
-        if (y + steps < altura) {
-            if (m[x][y + steps][3] == 0) {
-                vizinhos[1] = 1;
-            }
-        }
-        if (x - steps >= 0) {
-            if (m[x - steps][y][0] == 0) {
-                vizinhos[2] = 1;
-            }
-        }
-        if (y - steps >= 0) {
-            if (m[x][y - steps][1] == 0) {
-                vizinhos[3] = 1;
-            }
-        }
+        // VERIFICANDO VIZINHOS POSSÍVEIS
+        unsigned int v[4];
+        unsigned int* vizinhos = vizinhosBloco(v, m, x, y, dir, largura, altura);
+        unsigned int vizinhosAVisitar = checkVizinhos(vizinhos);
 
-        unsigned int vizinhosVisitados = 0;
-
-        while (vizinhosVisitados < 4) {
+        // O ESCAVADOR VAI VISITAR TODOS OS VIZINHOS POSSÍVEIS
+        while (vizinhosAVisitar > 0) {
             int d = rand() % 4;
 
-            if ((d == 0)&&(dir != 2)&&(vizinhos[d] == 1)) {
-                m[x][y][d] = 1;
-                vizinhos[d] = 2;
-                visitarBloco(matrix, x + steps, y, d, largura, altura);
-            }
-            if ((d == 1)&&(dir != 3)&&(vizinhos[d] == 1)) {
-                m[x][y][d] = 1;
-                vizinhos[d] = 2;
-                visitarBloco(matrix, x, y + steps, d, largura, altura);
-            }
-            if ((d == 2)&&(dir != 0)&&(vizinhos[d] == 1)) {
-                m[x][y][d] = 1;
-                vizinhos[d] = 2;
-                visitarBloco(matrix, x - steps, y, d, largura, altura);
-            }
-            if ((d == 3)&&(dir != 1)&&(vizinhos[d] == 1)) {
-                m[x][y][d] = 1;
-                vizinhos[d] = 2;
-                visitarBloco(matrix, x, y - steps, d, largura, altura);
-            }
+            cout << "Direção: " << directions[d] << endl;;
+            atualizarAlgoritmo(x,y);
 
-            vizinhosVisitados++;
+            // VISITANDO A DIREITA
+            if (d == 0) {
+                if ((dir != 2)&&(vizinhos[d] == 1)) {
+                    vizinhos[d] = 2;
+                    visitarBloco(matrix, x + steps, y, d, largura, altura);
+                    vizinhos = vizinhosBloco(vizinhos, *matrix, x, y, dir, largura, altura);
+                    vizinhosAVisitar = checkVizinhos(vizinhos);
+                } else cout << "Inacessível, ";
+            }
+            // VISITANDO PARA BAIXO
+            if (d == 1) {
+                if ((dir != 3)&&(vizinhos[d] == 1)) {
+                    vizinhos[d] = 2;
+                    visitarBloco(matrix, x, y + steps, d, largura, altura);
+                    vizinhos = vizinhosBloco(vizinhos, *matrix, x, y, dir, largura, altura);
+                    vizinhosAVisitar = checkVizinhos(vizinhos);
+                } else cout << "Inacessível, ";
+            }
+            // VISITANDO A ESQUERDA
+            if (d == 2) {
+                if ((dir != 0)&&(vizinhos[d] == 1)) {
+                    vizinhos[d] = 2;
+                    visitarBloco(matrix, x - steps, y, d, largura, altura);
+                    vizinhos = vizinhosBloco(vizinhos, *matrix, x, y, dir, largura, altura);
+                    vizinhosAVisitar = checkVizinhos(vizinhos);
+                } else cout << "Inacessível, ";
+            }
+            // VISITANDO PARA CIMA
+            if (d == 3) {
+                if ((dir != 1)&&(vizinhos[d] == 1)) {
+                    vizinhos[d] = 2;
+                    visitarBloco(matrix, x, y - steps, d, largura, altura);
+                    vizinhos = vizinhosBloco(vizinhos, *matrix, x, y, dir, largura, altura);
+                    vizinhosAVisitar = checkVizinhos(vizinhos);
+                } else cout << "Inacessível, ";
+            }
         }
+
+        if (vizinhosAVisitar == 0)
+            cout << "Todos os vizinhos visitados." << endl;
+        
+        atualizarAlgoritmo(x,y);
     }
 
     void gerarLabirinto(unsigned int largura, unsigned int altura){
+        // DEFININDO DIMENSÕES DO LABIRINTO
         labirintoLargura = largura;
         labirintoAltura = altura;
+
+        // GERANDO UMA MATRIZ VAZIA DE CÉLULAS COM 4 PAREDES
         gerarLabirintoVazio(&labirintoMatrix, largura, altura);
 
+        // POSIÇÃO INICIAL DO "ESCAVADOR"
         unsigned int x = SDL_round(largura/2);
         unsigned int y = SDL_round(altura/2);
 
+        cout << "Pressione qualquer tecla para gerar o labirinto..." << endl;
+        atualizarAlgoritmo(x, y, 0, true);
+
+        // COMEÇANDO A CAVAR A PARTIR DO CENTRO DO LABIRINTO
         visitarBloco(&labirintoMatrix, x, y, 4, largura, altura);
+    }
+
+    unsigned int* vizinhosBloco(unsigned int v[], vector<vector<vector<int>>> m, int x, int y, int d, int largura, int altura, int steps=1) {
+        // DETERMINANDO OS VIZINHOS POSSÍVEIS (QUAIS BLOCOS ELE PODE VISITAR), SE:
+        // 1. ESTIVER DENTRO DOS LIMITES DAS DIMENSÕES DE LARGURA E ALTURA
+        // 2. A PAREDE AINDA NÃO FOI CAVUCADA
+        // 3. O BLOCO NÃO FOI VISITADO
+
+        v[0] = 0;
+        v[1] = 0;
+        v[2] = 0;
+        v[3] = 0;
+
+        // CAVAR PARA A DIREITA
+        if (x + steps < largura) {
+            if ((m[x + steps][y][2] == 0)&&(m[x + steps][y][4] == 0)) {
+                v[0] = 1;
+            }
+        }
+        // CAVAR PARA BAIXO
+        if (y + steps < altura) {
+            if ((m[x][y + steps][3] == 0)&&(m[x][y + steps][4] == 0)) {
+                v[1] = 1;
+            }
+        }
+        // CAVAR PARA A ESQUERDA
+        if (x - steps >= 0) {
+            if ((m[x - steps][y][0] == 0)&&(m[x - steps][y][4] == 0)) {
+                v[2] = 1;
+            }
+        }
+        // CAVAR PARA CIMA
+        if (y - steps >= 0) {
+            if ((m[x][y - steps][1] == 0)&&(m[x][y - steps][4] == 0)) {
+                v[3] = 1;
+            }
+        }
+        
+        char directions[] = {'R','D','L','U','?'};
+        cout << directions[d] << "= [" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << "]" << endl;;
+        atualizarAlgoritmo(x, y);
+
+        return v;
+    }
+
+    unsigned int checkVizinhos(unsigned int v[]) {
+        unsigned int vizinhosAVisitar = 0;
+
+        if (v[0] == 1)
+            vizinhosAVisitar++;
+        if (v[1] == 1)
+            vizinhosAVisitar++;
+        if (v[2] == 1)
+            vizinhosAVisitar++;
+        if (v[3] == 1)
+            vizinhosAVisitar++;
+
+        return vizinhosAVisitar;
+    }
+
+    void atualizarAlgoritmo(int x, int y, int s=10, bool pausar=false) {
+        // ATUALIZANDO POSIÇÃO ATUAL DO ESCAVADOR APENAS PARA VISUALIZAÇÃO
+        curPosX = x;
+        curPosY = y;
+
+		/*SDL_Event evento;
+        while (pause(&evento)) {
+		    while (SDL_PollEvent(&evento)){
+                limpar();
+                desenharLabirinto();
+                atualizar();
+            }
+        }*/
+
+        limpar();
+        desenharLabirinto();
+        atualizar();
+
+        if (pausar)
+            getchar();
+        else
+            usleep(s * 1000);
     }
 
     void desenharLabirinto(){
@@ -202,12 +300,14 @@ public:
         int iniX = 50;
         int iniY = 50;
         int qLado = 10;
-        int qDist = qLado + 2;
+        int qDist = qLado + 1;
 
         for (int i=0; i < labirintoAltura; i++) {
             for (int j=0; j < labirintoLargura; j++) {
                 if ((curPosX == j)&&(curPosY == i)) {
                     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);  
+                } else if (labirintoMatrix[j][i][4] == 1) {
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
                 } else {
                     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
                 }
@@ -228,42 +328,54 @@ public:
 
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                 
-                if (labirintoMatrix[j][i][0] == 0){
-                    SDL_RenderDrawLine(
-                        renderer,
-                        iniX + (j * qDist) + qLado,
-                        iniY + (i * qDist),
-                        iniX + (j * qDist) + qLado,
-                        iniY + (i * qDist) + qLado
-                    );
-                }
-                if (labirintoMatrix[j][i][1] == 0){
-                    SDL_RenderDrawLine(
-                        renderer,
-                        iniX + (j * qDist),
-                        iniY + (i * qDist) + qLado,
-                        iniX + (j * qDist) + qLado,
-                        iniY + (i * qDist) + qLado
-                    );
-                }
-                if (labirintoMatrix[j][i][2] == 0){
-                    SDL_RenderDrawLine(
-                        renderer,
-                        iniX + (j * qDist),
-                        iniY + (i * qDist),
-                        iniX + (j * qDist),
-                        iniY + (i * qDist) + qLado
-                    );
-                }
-                if (labirintoMatrix[j][i][3] == 0){
-                    SDL_RenderDrawLine(
-                        renderer,
-                        iniX + (j * qDist),
-                        iniY + (i * qDist),
-                        iniX + (j * qDist) + qLado,
-                        iniY + (i * qDist)
-                    );
-                }
+                // PAREDE DIREITA
+                if (labirintoMatrix[j][i][0] == 0)
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                SDL_RenderDrawLine(
+                    renderer,
+                    iniX + (j * qDist) + qLado,
+                    iniY + (i * qDist),
+                    iniX + (j * qDist) + qLado,
+                    iniY + (i * qDist) + qLado
+                );
+                // PAREDE DE BAIXO
+                if (labirintoMatrix[j][i][1] == 0)
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                SDL_RenderDrawLine(
+                    renderer,
+                    iniX + (j * qDist),
+                    iniY + (i * qDist) + qLado,
+                    iniX + (j * qDist) + qLado,
+                    iniY + (i * qDist) + qLado
+                );
+                // PAREDE ESQUERDA
+                if (labirintoMatrix[j][i][2] == 0)
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                SDL_RenderDrawLine(
+                    renderer,
+                    iniX + (j * qDist),
+                    iniY + (i * qDist),
+                    iniX + (j * qDist),
+                    iniY + (i * qDist) + qLado
+                );
+                // PAREDE ACIMA
+                if (labirintoMatrix[j][i][3] == 0)
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                SDL_RenderDrawLine(
+                    renderer,
+                    iniX + (j * qDist),
+                    iniY + (i * qDist),
+                    iniX + (j * qDist) + qLado,
+                    iniY + (i * qDist)
+                );
             }
         }
     }
@@ -271,7 +383,17 @@ public:
     void eventos(SDL_Event evt) {
         if (evt.type == SDL_QUIT) {
             isJanelaAtiva = false;
+            fechar();
         }
+    }
+
+    bool pause(SDL_Event* evt) {
+        eventos(*evt);
+
+        if (evt->type == SDL_KEYDOWN)
+            return false;
+        else
+            return true;
     }
 
     void atualizar(){
