@@ -9,11 +9,21 @@ int main(int argc, char* args[]) {
     Janela janela = Janela("Labirinto", 10, 10, janelaLargura, janelaAltura);
     Jogador jogador = Jogador();
 
-    janela.gerarLabirinto(20,20);
-    janela.buscarLabirinto();
+    while (janela.getAtiva()) {
+        janela.gerarLabirinto(5,5);
+        janela.buscarLabirinto();
+
+        // FINALIZANDO
+        cout << "Fim do programa =)" << endl << "Reiniciar? [y/N]: ";
+
+        char r;
+        scanf("%c", &r);
+        if (r == 'N')
+            break;
+    }
 
     // FPS
-	static Uint32 tintervalo=30, prox_f, atual_f, fps_atual, fps_contar=60;
+	/*static Uint32 tintervalo=30, prox_f, atual_f, fps_atual, fps_contar=60;
 	prox_f = SDL_GetTicks() + tintervalo;
 
     while (janela.getAtiva()) {
@@ -37,7 +47,7 @@ int main(int argc, char* args[]) {
 			fps_atual = prox_f - atual_f;
 			fps_contar = 30;
 		}
-    }
+    }*/
 
     janela.fechar();
 

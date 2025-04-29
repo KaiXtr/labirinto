@@ -83,6 +83,49 @@ public:
 		SDL_RenderClear(renderer);
 	}
 
+    void gerarLabirinto(unsigned int largura, unsigned int altura){
+        // DEFININDO DIMENSÕES DO LABIRINTO
+        labirintoLargura = largura;
+        labirintoAltura = altura;
+        labirintoMode = 0;
+        labirintoPassos = 0;
+        labirintoMatrix = {};
+
+        // GERANDO UMA MATRIZ VAZIA DE CÉLULAS COM 4 PAREDES
+        gerarLabirintoVazio(&labirintoMatrix);
+
+        // POSIÇÃO INICIAL DO "ESCAVADOR"
+        startPosX = SDL_round(largura/2);
+        startPosY = SDL_round(altura/2);
+
+        cout << "Pressione qualquer tecla para gerar o labirinto..." << endl;
+        atualizarAlgoritmo(startPosX, startPosY, 0, true);
+
+        // COMEÇANDO A CAVAR A PARTIR DO CENTRO DO LABIRINTO
+        cavarBloco(&labirintoMatrix, startPosX, startPosY, 4);
+
+        // REINICIANDO POSIÇÃO E LIMPANDO BLOCOS VISITADOS
+        limparLabirinto();
+
+        cout << endl << "TOTAL DE PASSOS: " << labirintoPassos << endl;
+    }
+
+    void limparLabirinto() {
+        labirintoMode = 1;
+        curPosX = 0;
+        curPosY = 0;
+
+        for (int i=0; i < labirintoAltura; i++) {
+            for (int j=0; j < labirintoLargura; j++) {
+                labirintoMatrix[i][j][4] = 0;
+            }
+        }
+
+        limpar();
+        desenharLabirinto();
+        atualizar();
+    }
+
     void gerarLabirintoVazio(vector<vector<vector<int>>>* matrix) {
         vector<vector<vector<int>>> m = *matrix;
 
@@ -198,48 +241,7 @@ public:
         atualizarAlgoritmo(x,y);
     }
 
-    void gerarLabirinto(unsigned int largura, unsigned int altura){
-        // DEFININDO DIMENSÕES DO LABIRINTO
-        labirintoLargura = largura;
-        labirintoAltura = altura;
-        labirintoMode = 0;
-
-        // GERANDO UMA MATRIZ VAZIA DE CÉLULAS COM 4 PAREDES
-        gerarLabirintoVazio(&labirintoMatrix);
-
-        // POSIÇÃO INICIAL DO "ESCAVADOR"
-        startPosX = SDL_round(largura/2);
-        startPosY = SDL_round(altura/2);
-
-        cout << "Pressione qualquer tecla para gerar o labirinto..." << endl;
-        atualizarAlgoritmo(startPosX, startPosY, 0, true);
-
-        // COMEÇANDO A CAVAR A PARTIR DO CENTRO DO LABIRINTO
-        cavarBloco(&labirintoMatrix, startPosX, startPosY, 4);
-
-        // REINICIANDO POSIÇÃO E LIMPANDO BLOCOS VISITADOS
-        limparLabirinto();
-
-        cout << endl << "TOTAL DE PASSOS: " << labirintoPassos << endl;
-    }
-
-    void limparLabirinto() {
-        labirintoMode = 1;
-        curPosX = 0;
-        curPosY = 0;
-
-        for (int i=0; i < labirintoAltura; i++) {
-            for (int j=0; j < labirintoLargura; j++) {
-                labirintoMatrix[i][j][4] = 0;
-            }
-        }
-
-        limpar();
-        desenharLabirinto();
-        atualizar();
-    }
-
-    unsigned int* vizinhosBloco(unsigned int v[], vector<vector<vector<int>>> m, int x, int y, int d, int steps=1) {
+    unsigned int* vizinhosBloco(unsigned int v[], vector<vector<vector<int>>> m, int x, int y, int d, int w=0, int steps=1) {
         // DETERMINANDO OS VIZINHOS POSSÍVEIS (QUAIS BLOCOS ELE PODE VISITAR), SE:
         // 1. ESTIVER DENTRO DOS LIMITES DAS DIMENSÕES DE LARGURA E ALTURA
         // 2. A PAREDE AINDA NÃO FOI CAVUCADA
@@ -250,27 +252,30 @@ public:
         v[2] = 0;
         v[3] = 0;
 
+        // CAVANDO BLOCOS: w=0, pois os vizinhos são blocos com paredes que podem ser escavadas
+        // VISITANDO BLOCOS: w=1, pois os vizinhos são os blocos que foram escavados
+
         // CAVAR PARA A DIREITA
         if (x + steps < labirintoLargura) {
-            if ((m[x + steps][y][2] == 0)&&(m[x + steps][y][4] == 0)) {
+            if ((m[x + steps][y][2] == w)&&(m[x + steps][y][4] == 0)) {
                 v[0] = 1;
             }
         }
         // CAVAR PARA BAIXO
         if (y + steps < labirintoAltura) {
-            if ((m[x][y + steps][3] == 0)&&(m[x][y + steps][4] == 0)) {
+            if ((m[x][y + steps][3] == w)&&(m[x][y + steps][4] == 0)) {
                 v[1] = 1;
             }
         }
         // CAVAR PARA A ESQUERDA
         if (x - steps >= 0) {
-            if ((m[x - steps][y][0] == 0)&&(m[x - steps][y][4] == 0)) {
+            if ((m[x - steps][y][0] == w)&&(m[x - steps][y][4] == 0)) {
                 v[2] = 1;
             }
         }
         // CAVAR PARA CIMA
         if (y - steps >= 0) {
-            if ((m[x][y - steps][1] == 0)&&(m[x][y - steps][4] == 0)) {
+            if ((m[x][y - steps][1] == w)&&(m[x][y - steps][4] == 0)) {
                 v[3] = 1;
             }
         }
@@ -299,6 +304,7 @@ public:
 
     void buscarLabirinto() {
         // INICIANDO BUSCA NO LABIRINTO
+        labirintoPassos = 0;
         cout << "Pressione qualquer tecla para buscar pelo destino do labirinto..." << endl;
         atualizarAlgoritmo(0, 0, 0, true);
 
@@ -307,13 +313,70 @@ public:
 
         limparLabirinto();
         labirintoMode = 2;
-
-        // FINALIZANDO
-        cout << "Fim do programa =)" << endl;
     }
 
     void visitarBloco(vector<vector<vector<int>>>* matrix, int x, int y, unsigned int dir) {
+        unsigned int steps = 1;
+
+        // O BLOCO ATUAL FOI VISITADO
+        vector<vector<vector<int>>> m = *matrix;
+        labirintoPassos++;
+
+        // EXIBINDO AS MUDANÇAS EM TEMPO REAL COM UM TEMPO DE DELAY
+        atualizarAlgoritmo(x, y);
+
+        // VERIFICANDO VIZINHOS POSSÍVEIS
+        unsigned int v[4];
+        unsigned int* vizinhos = vizinhosBloco(v, m, x, y, dir, 1);
+        vector<int> vizinhosAVisitar = checkVizinhos(vizinhos);
+
+        // CALCULANDO G + H DE CADA VIZINHO
+        unsigned int minF = 99;
+        for (int i=0; i<vizinhosAVisitar.size(); i++){
+            unsigned int nx;
+            unsigned int ny;
+
+            if (vizinhosAVisitar[i] == 0){
+                nx = x + steps;
+                ny = y;
+            }
+            if (vizinhosAVisitar[i] == 1){
+                nx = x;
+                ny = y + steps;
+            }
+            if (vizinhosAVisitar[i] == 2){
+                nx = x - steps;
+                ny = y;
+            }
+            if (vizinhosAVisitar[i] == 3){
+                nx = x;
+                ny = y - steps;
+            }
+
+            if ((nx == startPosX)&&(ny == startPosY)){
+                cout << "ACHOU!" << endl;
+                break;
+            }
+
+            unsigned int h = manhattanDistance(x, y, nx, ny);
+            unsigned int f = 1 + h;
         
+            // ATUALIZANDO DADOS DO PONTEIRO
+            m[nx][ny][4] = 1;
+            *matrix = m;
+
+            if (f < minF)
+                minF = f;
+
+            visitarBloco(matrix, nx, ny, dir);
+        }
+    }
+
+    unsigned int manhattanDistance(unsigned int x, unsigned int y, unsigned int nx, unsigned int ny) {
+        double mx = x - nx;
+        double my = y - ny;
+        unsigned int h = abs(mx) + abs(my);
+        return h;
     }
 
     void atualizarAlgoritmo(int x, int y, int s=10, bool pausar=false) {
