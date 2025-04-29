@@ -10,6 +10,7 @@ int main(int argc, char* args[]) {
     Jogador jogador = Jogador();
 
     janela.gerarLabirinto(20,20);
+    janela.buscarLabirinto();
 
     // FPS
 	static Uint32 tintervalo=30, prox_f, atual_f, fps_atual, fps_contar=60;
