@@ -104,10 +104,12 @@ public:
         // COMEÇANDO A CAVAR A PARTIR DO CENTRO DO LABIRINTO
         cavarBloco(&labirintoMatrix, startPosX, startPosY, 4);
 
-        // REINICIANDO POSIÇÃO E LIMPANDO BLOCOS VISITADOS
-        limparLabirinto();
+        if (isJanelaAtiva) {
+            // REINICIANDO POSIÇÃO E LIMPANDO BLOCOS VISITADOS
+            limparLabirinto();
 
-        cout << endl << "TOTAL DE PASSOS: " << labirintoPassos << endl;
+            cout << endl << "TOTAL DE PASSOS: " << labirintoPassos << endl;
+        }
     }
 
     void limparLabirinto() {
@@ -182,7 +184,8 @@ public:
         *matrix = m;
 
         // EXIBINDO AS MUDANÇAS EM TEMPO REAL COM UM TEMPO DE DELAY
-        atualizarAlgoritmo(x, y);
+        if (!atualizarAlgoritmo(x, y))
+            return;
 
         // VERIFICANDO VIZINHOS POSSÍVEIS
         unsigned int v[4];
@@ -194,7 +197,8 @@ public:
             int d = vizinhosAVisitar[rand() % vizinhosAVisitar.size()];
 
             cout << "Direção: " << directions[d] << endl;;
-            atualizarAlgoritmo(x,y);
+            if (!atualizarAlgoritmo(x,y))
+                break;
 
             // VISITANDO A DIREITA
             if (d == 0) {
@@ -307,15 +311,16 @@ public:
         labirintoPassos = 0;
         cout << "Pressione qualquer tecla para buscar pelo destino do labirinto..." << endl;
         atualizarAlgoritmo(0, 0, 0, true);
+        labirintoMode = 2;
 
         // COMEÇANDO A CAVAR A PARTIR DO CENTRO DO LABIRINTO
-        visitarBloco(&labirintoMatrix, curPosX, curPosY, 4);
+        bool encontrado = visitarBloco(&labirintoMatrix, curPosX, curPosY);
 
         limparLabirinto();
-        labirintoMode = 2;
+        labirintoMode = 3;
     }
 
-    void visitarBloco(vector<vector<vector<int>>>* matrix, int x, int y, unsigned int dir) {
+    bool visitarBloco(vector<vector<vector<int>>>* matrix, int x, int y) {
         unsigned int steps = 1;
 
         // O BLOCO ATUAL FOI VISITADO
@@ -323,16 +328,20 @@ public:
         labirintoPassos++;
 
         // EXIBINDO AS MUDANÇAS EM TEMPO REAL COM UM TEMPO DE DELAY
-        atualizarAlgoritmo(x, y);
+        atualizarAlgoritmo(x, y, 0, true);
 
         // VERIFICANDO VIZINHOS POSSÍVEIS
         unsigned int v[4];
-        unsigned int* vizinhos = vizinhosBloco(v, m, x, y, dir, 1);
+        unsigned int* vizinhos = vizinhosBloco(v, m, x, y, 4, 1);
         vector<int> vizinhosAVisitar = checkVizinhos(vizinhos);
+        bool encontrado = NULL;
 
         // CALCULANDO G + H DE CADA VIZINHO
         unsigned int minF = 99;
         for (int i=0; i<vizinhosAVisitar.size(); i++){
+            if (encontrado || !isJanelaAtiva)
+                break;
+
             unsigned int nx;
             unsigned int ny;
 
@@ -354,8 +363,8 @@ public:
             }
 
             if ((nx == startPosX)&&(ny == startPosY)){
-                cout << "ACHOU!" << endl;
-                break;
+                cout << "ACHOU" << endl;
+                encontrado = true;
             }
 
             unsigned int h = manhattanDistance(x, y, nx, ny);
@@ -368,8 +377,10 @@ public:
             if (f < minF)
                 minF = f;
 
-            visitarBloco(matrix, nx, ny, dir);
+            encontrado = visitarBloco(matrix, nx, ny);
         }
+
+        return encontrado;
     }
 
     unsigned int manhattanDistance(unsigned int x, unsigned int y, unsigned int nx, unsigned int ny) {
@@ -379,28 +390,32 @@ public:
         return h;
     }
 
-    void atualizarAlgoritmo(int x, int y, int s=10, bool pausar=false) {
+    bool atualizarAlgoritmo(int x, int y, int s=10, bool p=false) {
         // ATUALIZANDO POSIÇÃO ATUAL DO ESCAVADOR APENAS PARA VISUALIZAÇÃO
         curPosX = x;
         curPosY = y;
 
-		/*SDL_Event evento;
-        while (pause(&evento)) {
-		    while (SDL_PollEvent(&evento)){
+        bool sleep = !p;
+        if (isJanelaAtiva) {
+            bool pausado = p;
+            do {
+		        SDL_Event evento;
+                while (SDL_PollEvent(&evento)) {
+                    eventos(evento);
+                    if (!sleep)
+                        pausado = pausar(evento);
+                }
                 limpar();
                 desenharLabirinto();
                 atualizar();
-            }
-        }*/
+            } while (pausado);
 
-        limpar();
-        desenharLabirinto();
-        atualizar();
-
-        if (pausar)
-            getchar();
-        else
-            usleep(s * 1000);
+            if (sleep)
+                usleep(s * 1000);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void desenharLabirinto(){
@@ -441,7 +456,7 @@ public:
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                 
                 // PAREDE DIREITA
-                changeWallColor(labirintoMatrix[j][i][0]);
+                changeWallColor(labirintoMatrix[j][i][0], labirintoMatrix[j][i][4]);
                 SDL_RenderDrawLine(
                     renderer,
                     iniX + (j * qDist) + qLado,
@@ -450,7 +465,7 @@ public:
                     iniY + (i * qDist) + qLado
                 );
                 // PAREDE DE BAIXO
-                changeWallColor(labirintoMatrix[j][i][1]);
+                changeWallColor(labirintoMatrix[j][i][1], labirintoMatrix[j][i][4]);
                 SDL_RenderDrawLine(
                     renderer,
                     iniX + (j * qDist),
@@ -459,7 +474,7 @@ public:
                     iniY + (i * qDist) + qLado
                 );
                 // PAREDE ESQUERDA
-                changeWallColor(labirintoMatrix[j][i][2]);
+                changeWallColor(labirintoMatrix[j][i][2], labirintoMatrix[j][i][4]);
                 SDL_RenderDrawLine(
                     renderer,
                     iniX + (j * qDist),
@@ -468,7 +483,7 @@ public:
                     iniY + (i * qDist) + qLado
                 );
                 // PAREDE ACIMA
-                changeWallColor(labirintoMatrix[j][i][3]);
+                changeWallColor(labirintoMatrix[j][i][3], labirintoMatrix[j][i][4]);
                 SDL_RenderDrawLine(
                     renderer,
                     iniX + (j * qDist),
@@ -480,13 +495,13 @@ public:
         }
     }
 
-    void changeWallColor(unsigned int v) {
-        if (v == 0)
+    void changeWallColor(unsigned int w, unsigned int v) {
+        if (w == 0)
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        else if (labirintoMode == 1)
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        else
+        else if (v == 1)
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        else if (labirintoMode > 0)
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     }
 
     void eventos(SDL_Event evt) {
@@ -495,11 +510,9 @@ public:
             fechar();
         }
     }
-
-    bool pause(SDL_Event* evt) {
-        eventos(*evt);
-
-        if (evt->type == SDL_KEYDOWN)
+    
+    bool pausar(SDL_Event evt) {
+        if (evt.type == SDL_KEYDOWN)
             return false;
         else
             return true;
